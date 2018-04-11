@@ -32,9 +32,8 @@ class H2FrameCodec(
     }
 
     override def onStreamClosed(stream: Http2Stream): Unit = {
-      //      new DefaultHttp2FrameStream(DefaultPropertyKey(stream.id()), stream)
-      println("trevertrever")
-      //      channelCtx.fireUserEventTriggered(Http2FrameStreamEvent.writabilityChanged(stream)); ()
+        println("TODO")
+     //      channelCtx.fireUserEventTriggered(Http2FrameStreamEvent.writabilityChanged(stream)); ()
     }
 
     override def onGoAwayReceived(lastStreamId: Int, errorCode: Long, data: ByteBuf): Unit = {
@@ -271,8 +270,7 @@ object H2FrameCodec {
     ): Unit = {
       val hdrs = new DefaultHttp2HeadersFrame(headers, eos, padding)
       hdrs.stream().id()
-      ctx.fireChannelRead(hdrs);
-      println("trever")
+      ctx.fireChannelRead(hdrs)
       ()
     }
 
