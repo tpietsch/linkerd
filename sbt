@@ -32,6 +32,8 @@ fi
 java -ea                          \
   $SBT_OPTS                       \
   $JAVA_OPTS                      \
+  -Xdebug                          \
+  -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 \
   -Djava.net.preferIPv4Stack=true \
   -XX:+AggressiveOpts             \
   -XX:+UseParNewGC                \
@@ -41,6 +43,7 @@ java -ea                          \
   -XX:ReservedCodeCacheSize=128m  \
   -XX:SurvivorRatio=128           \
   -XX:MaxTenuringThreshold=0      \
+  -Dscala.control.noTraceSuppression=true      \
   -Xss8M                          \
   -Xms512M                        \
   -Xmx2G                          \

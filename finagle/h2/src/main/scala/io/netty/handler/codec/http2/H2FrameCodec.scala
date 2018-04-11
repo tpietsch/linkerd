@@ -1,8 +1,10 @@
 package io.netty.handler.codec.http2
 
-import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBuf
 import io.netty.channel.{ChannelDuplexHandler, ChannelHandlerContext, ChannelPromise}
-import io.netty.handler.codec.http.HttpServerUpgradeHandler.UpgradeEvent;
+import io.netty.handler.codec.http.HttpServerUpgradeHandler.UpgradeEvent
+import io.netty.handler.codec.http2.Http2Connection.PropertyKey
+import io.netty.handler.codec.http2.Http2FrameCodec.DefaultHttp2FrameStream;
 
 /**
  * This is a direct reimplementation of io.netty.handler.codec.http2.Http2FrameCodec.
@@ -26,11 +28,13 @@ class H2FrameCodec(
 
     override def onStreamActive(stream: Http2Stream): Unit = channelCtx match {
       case null => // UPGRADE stream is active before handlerAdded
-      case ctx => ctx.fireUserEventTriggered(new Http2StreamActiveEvent(stream.id)); ()
+      case ctx => ()
     }
 
     override def onStreamClosed(stream: Http2Stream): Unit = {
-      channelCtx.fireUserEventTriggered(new Http2StreamClosedEvent(stream.id)); ()
+      //      new DefaultHttp2FrameStream(DefaultPropertyKey(stream.id()), stream)
+      println("trevertrever")
+      //      channelCtx.fireUserEventTriggered(Http2FrameStreamEvent.writabilityChanged(stream)); ()
     }
 
     override def onGoAwayReceived(lastStreamId: Int, errorCode: Long, data: ByteBuf): Unit = {
@@ -41,7 +45,6 @@ class H2FrameCodec(
   http2Handler.connection.addListener(connectionListener)
 
   def connectionHandler: Http2ConnectionHandler = http2Handler
-
   /**
    * Load any dependencies.
    */
@@ -123,7 +126,7 @@ class H2FrameCodec(
         try {
           http2Handler.encoder.writeData(
             http2HandlerCtx,
-            data.streamId,
+            data.stream().id(),
             data.content.retain(),
             data.padding,
             data.isEndStream,
@@ -134,7 +137,7 @@ class H2FrameCodec(
       case headers: Http2HeadersFrame =>
         http2Handler.encoder.writeHeaders(
           http2HandlerCtx,
-          headers.streamId,
+          headers.stream().id(),
           headers.headers(),
           headers.padding,
           headers.isEndStream,
@@ -144,7 +147,7 @@ class H2FrameCodec(
       case reset: Http2ResetFrame =>
         http2Handler.resetStream(
           http2HandlerCtx,
-          reset.streamId,
+          reset.stream().id(),
           reset.errorCode,
           promise
         ); ()
@@ -152,7 +155,7 @@ class H2FrameCodec(
       case update: Http2WindowUpdateFrame =>
         try {
           http2Handler.connection.local.flowController.consumeBytes(
-            http2Handler.connection.stream(update.streamId),
+            http2Handler.connection.stream(update.stream().id()),
             update.windowSizeIncrement
           )
           promise.setSuccess(); ()
@@ -226,6 +229,7 @@ object H2FrameCodec {
 
     override protected def onStreamError(
       ctx: ChannelHandlerContext,
+      isOut: Boolean,
       cause: Throwable,
       exc: Http2Exception.StreamException
     ): Unit =
@@ -234,7 +238,7 @@ object H2FrameCodec {
           ctx.fireExceptionCaught(exc); ()
         }
       } finally {
-        super.onStreamError(ctx, cause, exc)
+        super.onStreamError(ctx, isOut, cause, exc)
       }
   }
 
@@ -242,7 +246,7 @@ object H2FrameCodec {
 
     override def onRstStreamRead(ctx: ChannelHandlerContext, id: Int, code: Long): Unit = {
       val rst = new DefaultHttp2ResetFrame(code)
-      rst.streamId(id)
+      rst.stream().id()
       ctx.fireChannelRead(rst); ()
     }
 
@@ -252,6 +256,7 @@ object H2FrameCodec {
       headers: Http2Headers,
       streamDependency: Int,
       weight: Short,
+
       exclusive: Boolean,
       padding: Int,
       eos: Boolean
@@ -265,8 +270,10 @@ object H2FrameCodec {
       eos: Boolean
     ): Unit = {
       val hdrs = new DefaultHttp2HeadersFrame(headers, eos, padding)
-      hdrs.streamId(streamId)
-      ctx.fireChannelRead(hdrs); ()
+      hdrs.stream().id()
+      ctx.fireChannelRead(hdrs);
+      println("trever")
+      ()
     }
 
     override def onDataRead(
@@ -277,7 +284,7 @@ object H2FrameCodec {
       eos: Boolean
     ): Int = {
       val data = new DefaultHttp2DataFrame(content.retain(), eos, padding)
-      data.streamId(streamId)
+      data.stream().id()
       ctx.fireChannelRead(data)
       0 // bytes are marked as consumed via WindowUpdateFrame writes
     }
